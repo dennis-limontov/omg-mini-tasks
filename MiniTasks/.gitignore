@@ -4,6 +4,7 @@
 /[Ll]ogs/*
 /[Oo]bj/*
 /[Tt]emp/*
+/.vs/*
 /[Bb]ins
 /[Ss]creenshots
 *.csproj

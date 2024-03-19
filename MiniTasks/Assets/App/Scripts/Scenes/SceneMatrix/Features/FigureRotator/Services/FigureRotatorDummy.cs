@@ -7,17 +7,29 @@ namespace App.Scripts.Scenes.SceneMatrix.Features.FigureRotator.Services
     {
         public Grid<bool> RotateFigure(Grid<bool> grid, int rotateCount)
         {
-            var rotated = new Grid<bool>(grid.Size);
-
-            for (int i = 0; i < grid.Height; i++)
+            Grid<bool> localGrid;
+            Grid<bool> rotatedGrid = grid;
+            for (int k = 0; k < Mathf.Abs(rotateCount % 4); k++)
             {
-                for (int j = 0; j < grid.Width; j++)
+                localGrid = new Grid<bool>(new Vector2Int(rotatedGrid.Height, rotatedGrid.Width));
+                for (int i = 0; i < rotatedGrid.Width; i++)
                 {
-                    rotated[j, i] = Random.value > 0.5f;
+                    for (int j = 0; j < rotatedGrid.Height; j++)
+                    {
+                        if (rotateCount > 0)
+                        {
+                            localGrid[j, i] = rotatedGrid[i, j];
+                        }
+                        else
+                        {
+                            localGrid[rotatedGrid.Height - j, i] = rotatedGrid[i, j];
+                        }
+                    }
                 }
+                rotatedGrid = localGrid;
             }
             
-            return rotated;
+            return rotatedGrid;
         }
     }
 }
