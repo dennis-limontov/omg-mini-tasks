@@ -15,8 +15,8 @@
   ],
   "expected" : [
     {
-      "key" : "atack",
-      "result" : 6
+      "key": "damage",
+      "result": 6
     }
   ]
   

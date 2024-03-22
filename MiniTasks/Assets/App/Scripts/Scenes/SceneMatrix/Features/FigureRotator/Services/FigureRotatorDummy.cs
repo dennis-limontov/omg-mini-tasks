@@ -18,11 +18,11 @@ namespace App.Scripts.Scenes.SceneMatrix.Features.FigureRotator.Services
                     {
                         if (rotateCount > 0)
                         {
-                            localGrid[j, i] = rotatedGrid[i, j];
+                            localGrid[j, rotatedGrid.Width - 1 - i] = rotatedGrid[i, j];
                         }
                         else
                         {
-                            localGrid[rotatedGrid.Height - j, i] = rotatedGrid[i, j];
+                            localGrid[rotatedGrid.Height - 1 - j, i] = rotatedGrid[i, j];
                         }
                     }
                 }
