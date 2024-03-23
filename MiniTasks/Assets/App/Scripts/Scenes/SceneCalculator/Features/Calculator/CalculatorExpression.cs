@@ -53,6 +53,7 @@ namespace App.Scripts.Scenes.SceneCalculator.Features.Calculator
                 else if (char.IsDigit(expression[i]) || char.IsLetter(expression[i]))
                 {
                     CountExpressionPart(result, expression, ref i);
+                    result.Append(' ');
                 }
             }
 
@@ -71,7 +72,6 @@ namespace App.Scripts.Scenes.SceneCalculator.Features.Calculator
                 result.Append(expression[index++]);
             } while ((index < expression.Length) && !IsOperator(expression[index])
                     && (expression[index] != ' '));
-            result.Append(' ');
             index--;
         }
         
@@ -138,18 +138,18 @@ namespace App.Scripts.Scenes.SceneCalculator.Features.Calculator
 
         public void SetExpression(string expressionKey, string expression)
         {
-            Regex regex = new Regex(@$"[^\w]{expressionKey}[^\w]");
+            Regex regex = new Regex(@$"\b{expressionKey}\b");
             if (regex.IsMatch(expression))
             {
                 throw new ExceptionExecuteExpression($"Recursive expression: {expression}!");
             }
 
-            expressions[expressionKey.Trim()] = expression;
+            expressions[expressionKey] = expression;
         }
 
         public int Get(string expressionKey)
         {
-            if (expressions.TryGetValue(expressionKey.Trim(), out string expression))
+            if (expressions.TryGetValue(expressionKey, out string expression))
             {
                 return Execute(expression);
             }
