@@ -11,8 +11,18 @@ public class TestPathFinding
     private const string PathTest = "Assets/App/Scripts/Tests/SceneHeroes/TestCases/{0}.json";
 
     [Test]
-    [TestCase("levelGridInfo_0")]
-    [TestCase("levelGridInfo_1")]
+    /*[TestCase("levelGridInfo_0")]
+    [TestCase("levelGridInfo_1")]*/
+    [TestCase("test_field_path(0)")]
+    [TestCase("test_field_path(1)")]
+    [TestCase("test_field_path(2)")]
+    [TestCase("test_field_path(3)")]
+    [TestCase("test_field_path(4)")]
+    [TestCase("test_field_path(5)")]
+    [TestCase("test_field_path(6)")]
+    [TestCase("test_field_path(7)")]
+    [TestCase("test_field_path(8)")]
+    [TestCase("test_field_path(9)")]
     public void TestPathFindingSimplePasses(string testData)
     {
         var serviceUnitNavigator = new ServiceUnitNavigator();
