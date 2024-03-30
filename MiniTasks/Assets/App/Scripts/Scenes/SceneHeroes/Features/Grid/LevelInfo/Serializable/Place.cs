@@ -1,7 +1,9 @@
+using System;
 using UnityEngine;
 
 namespace App.Scripts.Scenes.SceneHeroes.Features.Grid.LevelInfo.Serializable
 {
+    [Serializable]
     public struct Place
     {
         public int X;

@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using App.Scripts.Modules.Grid;
 using App.Scripts.Scenes.SceneHeroes.Features.Grid;
@@ -10,256 +9,132 @@ namespace App.Scripts.Scenes.SceneHeroes.Features.PathFinding
 {
     public class ServiceUnitNavigator : IServiceUnitNavigator
     {
-        private Queue<PathPoint> way = new Queue<PathPoint>();
-        private List<Vector2Int> visited = new List<Vector2Int>();
-
-        #region Units Possible Steps
-        private List<Vector2Int> StepForSwordMan(Vector2Int current)
+        private readonly Dictionary<UnitType, DirectionInfo[]> directions = new Dictionary<UnitType, DirectionInfo[]>
         {
-            return new List<Vector2Int>()
             {
-                new Vector2Int(current.x - 1, current.y),
-                new Vector2Int(current.x, current.y + 1),
-                new Vector2Int(current.x + 1, current.y),
-                new Vector2Int(current.x, current.y - 1),
-            };
-        }
+                UnitType.SwordMan, new DirectionInfo[]
+                {
+                    new DirectionInfo(new Vector2Int(-1, 0), 1),
+                    new DirectionInfo(new Vector2Int(0, 1), 1),
+                    new DirectionInfo(new Vector2Int(1, 0), 1),
+                    new DirectionInfo(new Vector2Int(0, -1), 1),
+                }
+            },
+            {
+                UnitType.HorseMan, new DirectionInfo[]
+                {
+                    new DirectionInfo(new Vector2Int(-1, -1)),
+                    new DirectionInfo(new Vector2Int(-1, 1)),
+                    new DirectionInfo(new Vector2Int(1, 1)),
+                    new DirectionInfo(new Vector2Int(1, -1)),
+                }
+            },
+            {
+                UnitType.Angel, new DirectionInfo[]
+                {
+                    new DirectionInfo(new Vector2Int(-1, 0)),
+                    new DirectionInfo(new Vector2Int(0, 1)),
+                    new DirectionInfo(new Vector2Int(1, 0)),
+                    new DirectionInfo(new Vector2Int(0, -1)),
+                }
+            },
+            {
+                UnitType.Barbarian, new DirectionInfo[]
+                {
+                    new DirectionInfo(new Vector2Int(-1, -1)),
+                    new DirectionInfo(new Vector2Int(-1, 1)),
+                    new DirectionInfo(new Vector2Int(1, 1)),
+                    new DirectionInfo(new Vector2Int(1, -1)),
+                    new DirectionInfo(new Vector2Int(-1, 0)),
+                    new DirectionInfo(new Vector2Int(0, 1)),
+                    new DirectionInfo(new Vector2Int(1, 0)),
+                    new DirectionInfo(new Vector2Int(0, -1)),
+                }
+            },
+            {
+                UnitType.Poor, new DirectionInfo[]
+                {
+                    new DirectionInfo(new Vector2Int(0, -1)),
+                    new DirectionInfo(new Vector2Int(0, 1)),
+                    new DirectionInfo(new Vector2Int(-1, -1), 1),
+                    new DirectionInfo(new Vector2Int(-1, 1), 1),
+                    new DirectionInfo(new Vector2Int(1, 1), 1),
+                    new DirectionInfo(new Vector2Int(1, -1), 1)
+                }
+            },
+            {
+                UnitType.Shaman, new DirectionInfo[]
+                {
+                    new DirectionInfo(new Vector2Int(-2, 1), 1),
+                    new DirectionInfo(new Vector2Int(-1, 2), 1),
+                    new DirectionInfo(new Vector2Int(1, 2), 1),
+                    new DirectionInfo(new Vector2Int(2, 1), 1),
+                    new DirectionInfo(new Vector2Int(2, -1), 1),
+                    new DirectionInfo(new Vector2Int(1, -2), 1),
+                    new DirectionInfo(new Vector2Int(-1, -2), 1),
+                    new DirectionInfo(new Vector2Int(-2, -1), 1)
+                }
+            },
+        };
 
-        private List<Vector2Int> StepForHorseMan(Vector2Int current, Grid<int> gridMatrix)
+        private void FindSteps(List<Vector2Int> steps, UnitType unitType, Vector2Int current, Grid<int> gridMatrix)
         {
-            List<Vector2Int> stepList = new List<Vector2Int>();
-            
-            int index = 1;
-            while ((current.x - index >= 0) && (current.y + index < gridMatrix.Height)
-                && IsStepPossible(UnitType.HorseMan, (CellObstacleType)gridMatrix[current.x - index, current.y + index]))
+            bool hasPath = true;
+            DirectionInfo[] directionsForUnit = directions[unitType];
+            foreach (DirectionInfo directionInfo in directionsForUnit)
             {
-                stepList.Add(new Vector2Int(current.x - index, current.y + index));
-                index++;
+                directionInfo.FoundObstacle = false;
             }
-            index = 1;
-            while ((current.x + index < gridMatrix.Width) && (current.y + index < gridMatrix.Height)
-                && IsStepPossible(UnitType.HorseMan, (CellObstacleType)gridMatrix[current.x + index, current.y + index]))
-            {
-                stepList.Add(new Vector2Int(current.x + index, current.y + index));
-                index++;
-            }
-            index = 1;
-            while ((current.x + index < gridMatrix.Width) && (current.y - index >= 0)
-                && IsStepPossible(UnitType.HorseMan, (CellObstacleType)gridMatrix[current.x - index, current.y - index]))
-            {
-                stepList.Add(new Vector2Int(current.x + index, current.y - index));
-                index++;
-            }
-            index = 1;
-            while ((current.x - index >= 0) && (current.y - index >= 0)
-                && IsStepPossible(UnitType.HorseMan, (CellObstacleType)gridMatrix[current.x - index, current.y - index]))
-            {
-                stepList.Add(new Vector2Int(current.x - index, current.y - index));
-                index++;
-            }
+            steps.Clear();
 
-            return stepList;
-        }
+            for (int i = 1; hasPath; i++)
+            {
+                hasPath = false;
+                foreach (DirectionInfo directionInfo in directionsForUnit)
+                {
+                    if (directionInfo.FoundObstacle) continue;
+                    
+                    Vector2Int possibleStep = current + directionInfo.Step * i;
+                    if (((directionInfo.CellCount == -1) || (directionInfo.CellCount >= i))
+                        && gridMatrix.IsValid(possibleStep)
+                        && IsStepPossible(unitType, (CellObstacleType)gridMatrix[possibleStep]))
+                    {
+                        steps.Add(possibleStep);
+                    }
+                    else
+                    {
+                        directionInfo.FoundObstacle = true;
+                    }
 
-        private List<Vector2Int> StepForAngel(Vector2Int current, Grid<int> gridMatrix)
-        {
-            List<Vector2Int> stepList = new List<Vector2Int>();
-
-            int index = 1;
-            while ((current.x - index >= 0) && IsStepPossible(UnitType.Angel, (CellObstacleType)gridMatrix[current.x - index, current.y]))
-            {
-                stepList.Add(new Vector2Int(current.x - index, current.y));
-                index++;
-            }
-            index = 1;
-            while ((current.y + index < gridMatrix.Height) && IsStepPossible(UnitType.Angel, (CellObstacleType)gridMatrix[current.x, current.y + index]))
-            {
-                stepList.Add(new Vector2Int(current.x, current.y + index));
-                index++;
-            }
-            index = 1;
-            while ((current.x + index < gridMatrix.Width) && IsStepPossible(UnitType.Angel, (CellObstacleType)gridMatrix[current.x + index, current.y]))
-            {
-                stepList.Add(new Vector2Int(current.x + index, current.y));
-                index++;
-            }
-            index = 1;
-            while ((current.y - index >= 0) && IsStepPossible(UnitType.Angel, (CellObstacleType)gridMatrix[current.x, current.y - index]))
-            {
-                stepList.Add(new Vector2Int(current.x, current.y - index));
-                index++;
-            }
-
-            return stepList;
-        }
-
-        private List<Vector2Int> StepForBarbarian(Vector2Int current, Grid<int> gridMatrix)
-        {
-            List<Vector2Int> stepList = new List<Vector2Int>();
-
-            int index = 1;
-            while ((current.x - index >= 0) && IsStepPossible(UnitType.Barbarian, (CellObstacleType)gridMatrix[current.x - index, current.y]))
-            {
-                stepList.Add(new Vector2Int(current.x - index, current.y));
-                index++;
-            }
-            index = 1;
-            while ((current.x - index >= 0) && (current.y + index < gridMatrix.Height)
-                && IsStepPossible(UnitType.Barbarian, (CellObstacleType)gridMatrix[current.x - index, current.y + index]))
-            {
-                stepList.Add(new Vector2Int(current.x - index, current.y + index));
-                index++;
-            }
-            index = 1;
-            while ((current.y + index < gridMatrix.Height) && IsStepPossible(UnitType.Barbarian, (CellObstacleType)gridMatrix[current.x, current.y + index]))
-            {
-                stepList.Add(new Vector2Int(current.x, current.y + index));
-                index++;
-            }
-            index = 1;
-            while ((current.x + index < gridMatrix.Width) && (current.y + index < gridMatrix.Height)
-                && IsStepPossible(UnitType.Barbarian, (CellObstacleType)gridMatrix[current.x + index, current.y + index]))
-            {
-                stepList.Add(new Vector2Int(current.x + index, current.y + index));
-                index++;
-            }
-            index = 1;
-            while ((current.x + index < gridMatrix.Width) && IsStepPossible(UnitType.Barbarian, (CellObstacleType)gridMatrix[current.x + index, current.y]))
-            {
-                stepList.Add(new Vector2Int(current.x + index, current.y));
-                index++;
-            }
-            index = 1;
-            while ((current.x + index < gridMatrix.Width) && (current.y - index >= 0)
-                && IsStepPossible(UnitType.Barbarian, (CellObstacleType)gridMatrix[current.x + index, current.y - index]))
-            {
-                stepList.Add(new Vector2Int(current.x + index, current.y - index));
-                index++;
-            }
-            index = 1;
-            while ((current.y - index >= 0) && IsStepPossible(UnitType.Barbarian, (CellObstacleType)gridMatrix[current.x, current.y - index]))
-            {
-                stepList.Add(new Vector2Int(current.x, current.y - index));
-                index++;
-            }
-            index = 1;
-            while ((current.x - index >= 0) && (current.y - index >= 0)
-                && IsStepPossible(UnitType.Barbarian, (CellObstacleType)gridMatrix[current.x - index, current.y - index]))
-            {
-                stepList.Add(new Vector2Int(current.x - index, current.y - index));
-                index++;
-            }
-            
-            return stepList;
-        }
-
-        private List<Vector2Int> StepForPoor(Vector2Int current, Grid<int> gridMatrix)
-        {
-            List<Vector2Int> stepList = new List<Vector2Int>
-            {
-                new Vector2Int(current.x - 1, current.y + 1),
-                new Vector2Int(current.x + 1, current.y + 1),
-                new Vector2Int(current.x + 1, current.y - 1),
-                new Vector2Int(current.x - 1, current.y - 1)
-            };
-
-            int index = 1;
-            while ((current.y + index < gridMatrix.Height) && IsStepPossible(UnitType.Poor, (CellObstacleType)gridMatrix[current.x, current.y + index]))
-            {
-                stepList.Add(new Vector2Int(current.x, current.y + index));
-                index++;
-            }
-            index = 1;
-            while ((current.y - index >= 0) && IsStepPossible(UnitType.Poor, (CellObstacleType)gridMatrix[current.x, current.y - index]))
-            {
-                stepList.Add(new Vector2Int(current.x, current.y - index));
-                index++;
-            }
-
-            return stepList;
-        }
-
-        private List<Vector2Int> StepForShaman(Vector2Int current)
-        {
-            return new List<Vector2Int>()
-            {
-                new Vector2Int(current.x - 2, current.y + 1),
-                new Vector2Int(current.x - 1, current.y + 2),
-                new Vector2Int(current.x + 1, current.y + 2),
-                new Vector2Int(current.x + 2, current.y + 1),
-                new Vector2Int(current.x + 2, current.y - 1),
-                new Vector2Int(current.x + 1, current.y - 2),
-                new Vector2Int(current.x - 1, current.y - 2),
-                new Vector2Int(current.x - 2, current.y - 1)
-            };
-        }
-
-        private bool IsStepPossible(UnitType unitType, CellObstacleType obstacleType)
-        {
-            switch (unitType)
-            {
-                case UnitType.SwordMan:
-                case UnitType.HorseMan:
-                case UnitType.Poor:
-                case UnitType.Shaman:
-                    return (obstacleType == CellObstacleType.None);
-                case UnitType.Angel:
-                    return (obstacleType != CellObstacleType.Stone);
-                case UnitType.Barbarian:
-                    return (obstacleType != CellObstacleType.Water);
-                default:
-                    return false;
+                    if (!directionInfo.FoundObstacle)
+                    {
+                        hasPath = true;
+                    }
+                }
             }
         }
-        #endregion
 
         public List<Vector2Int> FindPath(UnitType unitType, Vector2Int from, Vector2Int to, Grid<int> gridMatrix)
         {
+            Queue<PathPoint> way = new Queue<PathPoint>();
+            HashSet<Vector2Int> visited = new HashSet<Vector2Int>() { from };
             PathPoint wayPeek = new PathPoint(from, null);
-            PathPoint localPeek = null;
+            PathPoint localPeek;
             Vector2Int wayPeekPoint = wayPeek.Coordinate;
-            List<Vector2Int> possibleNextPoints = null;
-            way.Clear();
-            visited.Clear();
-            visited.Add(from);
+            List<Vector2Int> possibleNextPoints = new List<Vector2Int>();
 
             while (wayPeekPoint != to)
             {
-                switch (unitType)
-                {
-                    case UnitType.SwordMan:
-                        possibleNextPoints = StepForSwordMan(wayPeekPoint);
-                        break;
-                    case UnitType.HorseMan:
-                        possibleNextPoints = StepForHorseMan(wayPeekPoint, gridMatrix);
-                        break;
-                    case UnitType.Angel:
-                        possibleNextPoints = StepForAngel(wayPeekPoint, gridMatrix);
-                        break;
-                    case UnitType.Barbarian:
-                        possibleNextPoints = StepForBarbarian(wayPeekPoint, gridMatrix);
-                        break;
-                    case UnitType.Poor:
-                        possibleNextPoints = StepForPoor(wayPeekPoint, gridMatrix);
-                        break;
-                    case UnitType.Shaman:
-                        possibleNextPoints = StepForShaman(wayPeekPoint);
-                        break;
-                    default:
-                        return null;
-                }
+                FindSteps(possibleNextPoints, unitType, wayPeekPoint, gridMatrix);
 
                 localPeek = wayPeek;
                 wayPeek = null;
-                for (int j = 0; j < possibleNextPoints.Count; j++)
+                foreach (Vector2Int possibleNextPoint in possibleNextPoints)
                 {
-                    if ((possibleNextPoints[j].x >= 0) && (possibleNextPoints[j].x < gridMatrix.Width)
-                        && (possibleNextPoints[j].y >= 0) && (possibleNextPoints[j].y < gridMatrix.Height)
-                        && IsStepPossible(unitType, (CellObstacleType)gridMatrix[possibleNextPoints[j]])
-                        && !visited.Contains(possibleNextPoints[j]))
+                    if (!visited.Contains(possibleNextPoint))
                     {
-                        PathPoint nextPathPoint = new PathPoint(possibleNextPoints[j], localPeek);
-                        if (possibleNextPoints[j] == to)
+                        PathPoint nextPathPoint = new PathPoint(possibleNextPoint, localPeek);
+                        if (possibleNextPoint == to)
                         {
                             wayPeek = nextPathPoint;
                             break;
@@ -284,6 +159,24 @@ namespace App.Scripts.Scenes.SceneHeroes.Features.PathFinding
             }
 
             return finalWay;
+        }
+
+        private bool IsStepPossible(UnitType unitType, CellObstacleType obstacleType)
+        {
+            switch (unitType)
+            {
+                case UnitType.SwordMan:
+                case UnitType.HorseMan:
+                case UnitType.Poor:
+                case UnitType.Shaman:
+                    return (obstacleType == CellObstacleType.None);
+                case UnitType.Angel:
+                    return (obstacleType != CellObstacleType.Stone);
+                case UnitType.Barbarian:
+                    return (obstacleType != CellObstacleType.Water);
+                default:
+                    return false;
+            }
         }
     }
 }
